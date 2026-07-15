@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Layered Heart Animation</title>
+<style>
+html,body{
+    margin:0;
+    overflow:hidden;
+    background:#050510;
+}
+canvas{
+    display:block;
+}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+}
+resize();
+window.onresize = resize;
+
+const cx = canvas.width/2;
+const cy = canvas.height/2;
+
+const points = [];
+const scale = 18;
+
+// Kalp noktaları
+for(let t=0; t<Math.PI*2; t+=0.01){
+    const x = 16*Math.pow(Math.sin(t),3);
+    const y = 13*Math.cos(t)
+             - 5*Math.cos(2*t)
+             - 2*Math.cos(3*t)
+             - Math.cos(4*t);
+
+    points.push({
+        x:x*scale,
+        y:-y*scale,
+        t:t
+    });
+}
+
+// Sol iç merkezden başlayacak şekilde sırala
+points.sort((a,b)=>a.t-b.t);
+
+// Katman renkleri
+const layers = [
+    ["#ff33cc", "#2266ff"], // 1. katman
+    ["#00ffff", "#ffffff"], // 2. katman
+    ["#2266ff", "#00ffff"], // 3. katman
+    ["#ff66ff", "#ffffff"], // 4. katman
+];
+
+let progress = 0;
+let layer = 0;
+
+function drawStars(){
+    for(let i=0;i<120;i++){
+        ctx.fillStyle = "rgba(255,255,255,.7)";
+        ctx.fillRect((i*97)%canvas.width,(i*61)%canvas.height,2,2);
+    }
+}
+
+function animate(){
+
+    ctx.fillStyle = "rgba(5,5,16,0.08)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    drawStars();
+
+    // Önceki katmanları tam çiz
+    for(let l=0; l<layer; l++){
+        for(let i=0; i<points.length; i++){
+
+            const p = points[i];
+
+            const g = ctx.createLinearGradient(
+                cx+p.x, cy+p.y,
+                cx, cy
+            );
+
+            g.addColorStop(0, layers[l][0]);
+            g.addColorStop(1, layers[l][1]);
+
+            ctx.strokeStyle = g;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = "#ff44ff";
+            ctx.lineWidth = 0.8;
+
+            ctx.beginPath();
+            ctx.moveTo(cx,cy);
+            ctx.lineTo(cx+p.x, cy+p.y);
+            ctx.stroke();
+        }
+    }
+
+    // Aktif katman soldan sağa çiziliyor
+    for(let i=0; i<progress; i++){
+
+        const p = points[i];
+
+        const g = ctx.createLinearGradient(
+            cx+p.x, cy+p.y,
+            cx, cy
+        );
+
+        g.addColorStop(0, layers[layer][0]);
+        g.addColorStop(1, layers[layer][1]);
+
+        ctx.strokeStyle = g;
+        ctx.lineWidth = 1.4;
+
+        ctx.beginPath();
+        ctx.moveTo(cx,cy);
+        ctx.lineTo(cx+p.x, cy+p.y);
+        ctx.stroke();
+    }
+
+    // Ortadaki beyaz çizgi
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy-20);
+    ctx.lineTo(cx, cy+20);
+    ctx.stroke();
+
+    progress += 0.30;
+
+    // Bir katman bitince sonraki katmana geç
+    if(progress >= points.length){
+        progress = 0;
+        layer++;
+
+        // Tüm katmanlar bittiyse son hali bırak
+        if(layer >= layers.length){
+            layer = layers.length - 1;
+            progress = points.length;
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>
